@@ -1,0 +1,27 @@
+# Backend
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.env
+*.env.local
+db.sqlite3
+*.log
+media/
+staticfiles/
+.DS_Store
+*.swp
+*.swo
+
+# IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Byte-compiled
+*.py[cod]
+*$py.class
