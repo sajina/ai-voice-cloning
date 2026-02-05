@@ -11,3 +11,6 @@ gTTS>=2.3.0
 edge-tts>=7.0.0
 deep-translator>=1.11.0
 aksharamukha>=2.3
+gunicorn>=21.0.0
+dj-database-url>=2.1.0
+whitenoise>=6.6.0
