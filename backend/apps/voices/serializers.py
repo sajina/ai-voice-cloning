@@ -20,7 +20,7 @@ class VoiceCloneSerializer(serializers.ModelSerializer):
     class Meta:
         model = VoiceClone
         fields = [
-            'id', 'name', 'description', 'audio_sample', 'status',
+            'id', 'name', 'description', 'language', 'audio_sample', 'status',
             'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'status', 'created_at', 'updated_at']
@@ -31,7 +31,7 @@ class VoiceCloneCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = VoiceClone
-        fields = ['name', 'description', 'audio_sample']
+        fields = ['name', 'description', 'language', 'audio_sample']
     
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user
@@ -49,7 +49,7 @@ class GeneratedSpeechSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'voice_profile', 'voice_profile_name', 'voice_clone',
             'voice_clone_name', 'input_text', 'audio_file',
-            'duration_seconds', 'created_at'
+            'duration_seconds', 'credits_used', 'balance_after', 'created_at'
         ]
         read_only_fields = ['id', 'audio_file', 'duration_seconds', 'created_at']
 

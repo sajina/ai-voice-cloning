@@ -93,6 +93,11 @@ export const adminApi = {
     return response.data;
   },
 
+  updateVoiceClone: async (id, data) => {
+    const response = await api.patch(`/api/voices/admin/clones/${id}/`, data);
+    return response.data;
+  },
+
   // Generated Speeches
   getGeneratedSpeeches: async (params = {}) => {
     const response = await api.get('/api/voices/admin/speeches/', { params });

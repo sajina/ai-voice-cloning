@@ -113,6 +113,7 @@ class VoiceClone(models.Model):
     )
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
+    language = models.CharField(max_length=10, choices=VoiceProfile.LANGUAGE_CHOICES, default='en')
     audio_sample = models.FileField(upload_to='clone_samples/')
     status = models.CharField(
         max_length=20,
@@ -161,6 +162,8 @@ class GeneratedSpeech(models.Model):
     input_text = models.TextField()
     audio_file = models.FileField(upload_to='generated_audio/')
     duration_seconds = models.FloatField(null=True, blank=True)
+    credits_used = models.IntegerField(default=5)
+    balance_after = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:

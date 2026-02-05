@@ -50,6 +50,7 @@ class VoiceCloneViewSet(viewsets.ModelViewSet):
         return VoiceCloneSerializer
     
     def perform_create(self, serializer):
+        print(f"DEBUG: Validated Data: {serializer.validated_data}")
         voice_clone = serializer.save()
         # Process the voice clone (in background in production)
         voice_service.process_voice_clone(voice_clone)
@@ -62,59 +63,105 @@ class GenerateSpeechView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
     
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        voice_profile = None
-        voice_clone = None
-        
-        if serializer.validated_data.get('voice_profile_id'):
-            try:
-                voice_profile = VoiceProfile.objects.get(
-                    id=serializer.validated_data['voice_profile_id'],
-                    is_active=True
-                )
-            except VoiceProfile.DoesNotExist:
+        from django.db.models import F
+        from apps.users.models import User # Ensure User is imported
+        import traceback
+
+        print(f"DEBUG: Generate request for user {request.user.email}")
+
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
+            CREDIT_COST = 5
+            
+            print("DEBUG: Attempting to deduct credits...")
+            updated = User.objects.filter(
+                id=request.user.id, 
+                credits__gte=CREDIT_COST
+            ).update(credits=F('credits') - CREDIT_COST)
+
+            if updated == 0:
+                print("DEBUG: Insufficient credits")
                 return Response(
-                    {'error': 'Voice profile not found'},
-                    status=status.HTTP_404_NOT_FOUND
+                    {'error': 'Insufficient credits. Please recharge.'},
+                    status=status.HTTP_402_PAYMENT_REQUIRED
                 )
-        
-        if serializer.validated_data.get('voice_clone_id'):
-            try:
-                voice_clone = VoiceClone.objects.get(
-                    id=serializer.validated_data['voice_clone_id'],
-                    user=request.user,
-                    is_active=True,
-                    status='ready'
-                )
-            except VoiceClone.DoesNotExist:
-                return Response(
-                    {'error': 'Voice clone not found or not ready'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-        
-        # Generate speech
-        result = voice_service.generate_speech(
-            text=serializer.validated_data['text'],
-            voice_profile=voice_profile,
-            voice_clone=voice_clone
-        )
-        
-        # Save generated speech record
-        generated = GeneratedSpeech.objects.create(
-            user=request.user,
-            voice_profile=voice_profile,
-            voice_clone=voice_clone,
-            input_text=serializer.validated_data['text'],
-            audio_file=result['audio_path'],
-            duration_seconds=result['duration']
-        )
-        
-        return Response(
-            GeneratedSpeechSerializer(generated).data,
-            status=status.HTTP_201_CREATED
-        )
+            
+            print("DEBUG: Credits deducted. Refreshing user...")
+            request.user.refresh_from_db()
+            balance_after = request.user.credits
+            print(f"DEBUG: New Balance: {balance_after}")
+
+            voice_profile = None
+            voice_clone = None
+            
+            if serializer.validated_data.get('voice_profile_id'):
+                try:
+                    voice_profile = VoiceProfile.objects.get(
+                        id=serializer.validated_data['voice_profile_id'],
+                        is_active=True
+                    )
+                except VoiceProfile.DoesNotExist:
+                    print("DEBUG: Voice Profile not found")
+                    User.objects.filter(id=request.user.id).update(credits=F('credits') + CREDIT_COST)
+                    return Response(
+                        {'error': 'Voice profile not found'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+            
+            if serializer.validated_data.get('voice_clone_id'):
+                try:
+                    voice_clone = VoiceClone.objects.get(
+                        id=serializer.validated_data['voice_clone_id'],
+                        user=request.user,
+                        is_active=True,
+                        status='ready'
+                    )
+                except VoiceClone.DoesNotExist:
+                    print("DEBUG: Voice Clone not found")
+                    User.objects.filter(id=request.user.id).update(credits=F('credits') + CREDIT_COST)
+                    return Response(
+                        {'error': 'Voice clone not found or not ready'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+            
+            print(f"DEBUG: Generating speech for text: {serializer.validated_data['text'][:20]}...")
+            # Generate speech
+            result = voice_service.generate_speech(
+                text=serializer.validated_data['text'],
+                voice_profile=voice_profile,
+                voice_clone=voice_clone
+            )
+            print(f"DEBUG: Generation result: {result}")
+            
+            # Save generated speech record
+            generated = GeneratedSpeech.objects.create(
+                user=request.user,
+                voice_profile=voice_profile,
+                voice_clone=voice_clone,
+                input_text=serializer.validated_data['text'],
+                audio_file=result['audio_path'],
+                duration_seconds=result['duration'],
+                credits_used=CREDIT_COST,
+                balance_after=balance_after
+            )
+            print("DEBUG: Record saved successfully")
+            
+            return Response(
+                GeneratedSpeechSerializer(generated).data,
+                status=status.HTTP_201_CREATED
+            )
+            
+        except Exception as e:
+            print(f"CRITICAL ERROR in GenerateSpeechView: {e}")
+            traceback.print_exc()
+            # Atomic Refund if generation fails
+            User.objects.filter(id=request.user.id).update(credits=F('credits') + CREDIT_COST)
+            return Response(
+                {'error': f'Generation failed: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class TranslateTextView(generics.CreateAPIView):

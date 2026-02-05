@@ -27,6 +27,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, max_length=255)
     name = models.CharField(max_length=255)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    credits = models.IntegerField(default=10)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
@@ -48,3 +49,27 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def is_administrator(self):
         return self.is_admin or self.is_superuser
+
+
+class EmailOTP(models.Model):
+    """Store OTP codes for email verification."""
+    
+    email = models.EmailField()
+    otp = models.CharField(max_length=6)
+    name = models.CharField(max_length=255)
+    password = models.CharField(max_length=255)  # Hashed password
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    
+    class Meta:
+        db_table = 'email_otps'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"OTP for {self.email}"
+    
+    @property
+    def is_expired(self):
+        from django.utils import timezone
+        return timezone.now() > self.expires_at

@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Users, Volume2, Sparkles, FileAudio, 
-  TrendingUp, Shield, Loader2
+  TrendingUp, Shield, Loader2, CreditCard
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AdminUsers } from './admin/AdminUsers';
 import { AdminVoices } from './admin/AdminVoices';
 import { AdminClones } from './admin/AdminClones';
+import AdminTransactions from '@/pages/admin/Transactions';
+
 
 export function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -93,6 +95,10 @@ export function AdminDashboard() {
             <TabsTrigger value="clones">
               <Sparkles className="w-4 h-4 mr-2" />
               Clones
+            </TabsTrigger>
+            <TabsTrigger value="transactions">
+              <CreditCard className="w-4 h-4 mr-2" />
+              Transactions
             </TabsTrigger>
           </TabsList>
 
@@ -208,6 +214,10 @@ export function AdminDashboard() {
 
           <TabsContent value="clones">
             <AdminClones />
+          </TabsContent>
+
+          <TabsContent value="transactions">
+            <AdminTransactions />
           </TabsContent>
         </Tabs>
       </div>

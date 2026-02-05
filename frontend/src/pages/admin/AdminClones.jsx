@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { adminApi } from '@/api/admin';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Sparkles, Loader2, CheckCircle, XCircle, Clock, Power } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const statusConfig = {
@@ -33,6 +33,16 @@ export function AdminClones() {
     try { await adminApi.rejectVoiceClone(id); toast.success('Clone rejected'); loadClones(); } catch { toast.error('Failed'); }
   };
 
+  const handleToggleActive = async (clone) => {
+    try {
+      await adminApi.updateVoiceClone(clone.id, { is_active: !clone.is_active });
+      toast.success(clone.is_active ? 'Clone disabled' : 'Clone enabled');
+      loadClones();
+    } catch {
+      toast.error('Failed to update clone');
+    }
+  };
+
   if (loading) return <div className="text-center py-12"><Loader2 className="w-8 h-8 mx-auto animate-spin text-primary" /></div>;
 
   return (
@@ -58,6 +68,21 @@ export function AdminClones() {
                   </div>
                 </div>
               </div>
+              <div className="flex items-center gap-2">
+                 <div className={`px-2 py-1 rounded-full text-xs font-medium border ${clone.is_active ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                    {clone.is_active ? 'Active' : 'Disabled'}
+                 </div>
+                 <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleToggleActive(clone)}
+                    className={clone.is_active ? 'text-green-500 hover:text-green-600' : 'text-red-500 hover:text-red-600'}
+                    title={clone.is_active ? "Disable Clone" : "Enable Clone"}
+                  >
+                    <Power className="w-4 h-4" />
+                  </Button>
+              </div>
+
               {clone.status === 'pending' && (
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => handleApprove(clone.id)} className="text-green-500">Approve</Button>

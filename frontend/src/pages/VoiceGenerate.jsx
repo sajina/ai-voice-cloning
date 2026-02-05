@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { voicesApi } from '@/api/voices';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,11 +18,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Volume2, Loader2, Download, Play, Square, Sparkles, Trash2, Clock, Languages } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { LANGUAGES, getLanguagesByRegion } from '@/lib/languages';
+import { LANGUAGES, getLanguagesByRegion, SAMPLE_TEXTS } from '@/lib/languages';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export function VoiceGenerate() {
+  const { user, checkAuth } = useAuth();
+  const navigate = useNavigate();
   const [text, setText] = useState('');
 
   const [selectedVoiceIds, setSelectedVoiceIds] = useState(new Set());
@@ -31,16 +35,20 @@ export function VoiceGenerate() {
 
   const [generatedHistory, setGeneratedHistory] = useState([]);
   const [playingId, setPlayingId] = useState(null);
+
   const audioInstance = useRef(null);
+
+  // Preview State
+  const [previewPlayingId, setPreviewPlayingId] = useState(null);
+  const [previewLoadingId, setPreviewLoadingId] = useState(null);
+  const previewAudioInstance = useRef(null);
 
   // Filters
   const [gender, setGender] = useState('all');
   const [emotion, setEmotion] = useState('all');
   const [language, setLanguage] = useState('all');
 
-  // Translation
-  const [enableTranslation, setEnableTranslation] = useState(false);
-  const [targetLanguage, setTargetLanguage] = useState('en');
+  // Translation - always enabled, uses the language filter
   const [translating, setTranslating] = useState(false);
   const [translatedText, setTranslatedText] = useState('');
 
@@ -96,15 +104,15 @@ export function VoiceGenerate() {
     try {
       let finalText = text.trim();
       
-      // If translation is enabled, translate first
-      if (enableTranslation) {
+      // If a specific language is selected, translate first
+      if (language !== 'all') {
         setTranslating(true);
         try {
-          const translationResult = await voicesApi.translateText(finalText, targetLanguage);
+          const translationResult = await voicesApi.translateText(finalText, language);
           if (translationResult.translated_text) {
             finalText = translationResult.translated_text;
             setTranslatedText(finalText);
-            toast.success(`Translated to ${LANGUAGES.find(l => l.code === targetLanguage)?.name || targetLanguage}`);
+            toast.success(`Translated to ${LANGUAGES.find(l => l.code === language)?.name || language}`);
           }
           if (translationResult.error) {
             toast.error(`Translation warning: ${translationResult.error}`);
@@ -115,6 +123,8 @@ export function VoiceGenerate() {
         } finally {
           setTranslating(false);
         }
+      } else {
+        setTranslatedText(''); // Clear any previous translation
       }
 
       // Batch generate for all selected voices
@@ -135,6 +145,12 @@ export function VoiceGenerate() {
       setGeneratedHistory(prev => [...results, ...prev]);
       
       toast.success(`Generated ${results.length} speech files!`);
+      // Update credits
+      try {
+        await checkAuth();
+      } catch (e) {
+        console.error("Failed to refresh credits", e);
+      }
       // Clear selection after successful generation (optional, keeping it might be better for tweaks)
     } catch (error) {
       console.error(error);
@@ -216,6 +232,68 @@ export function VoiceGenerate() {
       console.error('Delete failed', error);
       toast.error('Failed to delete');
     }
+
+  };
+
+  const handlePreview = async (e, profile) => {
+    e.stopPropagation(); // Prevent card selection when clicking play
+
+    // Stop if currently playing this voice
+    if (previewPlayingId === profile.id) {
+      if (previewAudioInstance.current) {
+        previewAudioInstance.current.pause();
+        previewAudioInstance.current.currentTime = 0;
+      }
+      setPreviewPlayingId(null);
+      return;
+    }
+
+    // Stop any other preview
+    if (previewAudioInstance.current) {
+      previewAudioInstance.current.pause();
+      previewAudioInstance.current = null;
+    }
+    setPreviewPlayingId(null);
+
+    // Start loading
+    setPreviewLoadingId(profile.id);
+
+    try {
+      let audioUrl = profile.sample_audio;
+
+      // If no sample audio, generate one on the fly
+      if (!audioUrl) {
+        const langCode = profile.language;
+        // Use localized text or fallback to English
+        const template = SAMPLE_TEXTS[langCode] || SAMPLE_TEXTS['en'];
+        const sampleText = template.replace('{name}', profile.name);
+        
+        const result = await voicesApi.generateSpeech({
+          text: sampleText,
+          voice_profile_id: profile.id
+        });
+        audioUrl = result.audio_file;
+      }
+
+      const url = getAudioUrl(audioUrl);
+      if (!url) throw new Error('Failed to get audio URL');
+
+      const audio = new Audio(url);
+      previewAudioInstance.current = audio;
+
+      audio.onended = () => {
+        setPreviewPlayingId(null);
+      };
+
+      await audio.play();
+      setPreviewPlayingId(profile.id);
+
+    } catch (error) {
+      console.error('Preview failed:', error);
+      toast.error('Failed to play preview');
+    } finally {
+      setPreviewLoadingId(null);
+    }
   };
 
   return (
@@ -250,74 +328,6 @@ export function VoiceGenerate() {
             </CardContent>
           </Card>
 
-          {/* Translation Settings */}
-          <Card className="glass border-white/10">
-            <CardHeader className="flex flex-row items-center justify-between py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center">
-                  <Languages className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Translate & Generate</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Translate your text to another language before generating speech
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant={enableTranslation ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  setEnableTranslation(!enableTranslation);
-                  setTranslatedText('');
-                }}
-                className={enableTranslation ? "gradient-primary" : ""}
-              >
-                {enableTranslation ? "Enabled" : "Disabled"}
-              </Button>
-            </CardHeader>
-            {enableTranslation && (
-              <CardContent className="pt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Translate To ({LANGUAGES.length} languages)</Label>
-                    <Select value={targetLanguage} onValueChange={setTargetLanguage}>
-                      <SelectTrigger className="bg-background/50">
-                        <SelectValue placeholder="Select target language" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[400px]">
-                        {Object.entries(getLanguagesByRegion()).map(([region, langs]) => (
-                          <SelectGroup key={region}>
-                            <SelectLabel className="text-xs text-muted-foreground font-semibold">{region}</SelectLabel>
-                            {langs.map((lang) => (
-                              <SelectItem key={lang.code} value={lang.code}>
-                                {lang.flag} {lang.name}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-end">
-                    <div className="px-4 py-2 rounded-lg bg-primary/10 border border-primary/20 flex-1">
-                      <p className="text-xs text-muted-foreground">Target Language</p>
-                      <p className="font-medium">
-                        {LANGUAGES.find(l => l.code === targetLanguage)?.flag}{' '}
-                        {LANGUAGES.find(l => l.code === targetLanguage)?.name || targetLanguage}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                {translatedText && (
-                  <div className="mt-4 p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-                    <p className="text-xs text-green-400 mb-2">Translated Text Preview:</p>
-                    <p className="text-sm">{translatedText}</p>
-                  </div>
-                )}
-              </CardContent>
-            )}
-          </Card>
 
             {/* Voice Selection */}
           <Card className="glass border-white/10">
@@ -389,8 +399,14 @@ export function VoiceGenerate() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Language ({LANGUAGES.length} available)</Label>
-                      <Select value={language} onValueChange={setLanguage}>
+                      <Label>Target Language ({LANGUAGES.length})</Label>
+                      <Select 
+                        value={language} 
+                        onValueChange={(val) => {
+                          setLanguage(val);
+                          setSelectedVoiceIds(new Set()); // Clear selection when language changes
+                        }}
+                      >
                         <SelectTrigger className="bg-background/50">
                           <SelectValue placeholder="All Languages" />
                         </SelectTrigger>
@@ -408,8 +424,21 @@ export function VoiceGenerate() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {language !== 'all' && (
+                        <p className="text-xs text-primary mt-1">
+                          ✨ Text will be translated to {LANGUAGES.find(l => l.code === language)?.name}
+                        </p>
+                      )}
                     </div>
                   </div>
+
+                  {/* Translation Preview */}
+                  {translatedText && (
+                    <div className="mb-4 p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                      <p className="text-xs text-green-400 mb-2">Translated Text:</p>
+                      <p className="text-sm">{translatedText}</p>
+                    </div>
+                  )}
 
                   {/* Voice Profiles Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -437,69 +466,82 @@ export function VoiceGenerate() {
                         <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center mb-3">
                           <span className="text-lg">{LANGUAGES.find(l => l.code === profile.language)?.flag || '🌍'}</span>
                         </div>
-                        <p className="font-medium text-sm">{profile.name}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {profile.gender} • {LANGUAGES.find(l => l.code === profile.language)?.name || profile.language}
-                        </p>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-medium text-sm">{profile.name}</p>
+                            <p className="text-xs text-muted-foreground capitalize">
+                              {profile.gender} • {LANGUAGES.find(l => l.code === profile.language)?.name || profile.language}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 -mt-1 -mr-2 rounded-full hover:bg-white/10"
+                            onClick={(e) => handlePreview(e, profile)}
+                          >
+                            {previewLoadingId === profile.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                            ) : previewPlayingId === profile.id ? (
+                              <Square className="w-4 h-4 text-primary fill-primary" />
+                            ) : (
+                              <Play className="w-4 h-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                         );
                       })}
                   </div>
                 </TabsContent>
 
-                <TabsContent value="clone">
-                  {clones.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Sparkles className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground mb-4">No voice clones yet</p>
-                      <Button variant="gradient" asChild>
-                        <a href="/clone">Create Voice Clone</a>
-                      </Button>
+                <TabsContent value="clone" className="py-12">
+                  <div className="flex flex-col items-center justify-center text-center space-y-4">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 flex items-center justify-center border border-white/10">
+                      <Sparkles className="w-8 h-8 text-primary animate-pulse" />
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {clones.filter(c => c.status === 'ready').map((clone) => {
-                        const isSelected = selectedVoiceIds.has(clone.id.toString());
-                        return (
-                          <div
-                            key={clone.id}
-                            onClick={() => {
-                              const newSet = new Set(selectedVoiceIds);
-                              const idStr = clone.id.toString();
-                              if (newSet.has(idStr)) {
-                                newSet.delete(idStr);
-                              } else {
-                                newSet.add(idStr);
-                              }
-                              setSelectedVoiceIds(newSet);
-                            }}
-                            className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                              isSelected
-                                ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                                : 'border-border hover:border-primary/50'
-                            }`}
-                          >
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center mb-3">
-                            <Sparkles className="w-5 h-5 text-white" />
-                          </div>
-                          <p className="font-medium text-sm">{clone.name}</p>
-                          <p className="text-xs text-muted-foreground">Your Clone</p>
-                        </div>
-                          );
-                        })}
+                    <div className="max-w-md space-y-2">
+                      <h3 className="text-xl font-semibold">Voice Cloning Coming Soon</h3>
+                      <p className="text-muted-foreground">
+                        We are working on integrating advanced AI for realistic voice cloning. 
+                        Stay tuned for updates!
+                      </p>
                     </div>
-                  )}
+                    {/*
+                    <Button variant="outline" disabled className="opacity-50">
+                      <Clock className="w-4 h-4 mr-2" />
+                      Available in v2.0
+                    </Button>
+                    */}
+                  </div>
                 </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
 
+          {/* Cost Info */}
+          {selectedVoiceIds.size > 0 && (
+             <div className="flex justify-between items-center text-sm px-1">
+                <span className="text-muted-foreground">
+                    Selected: {selectedVoiceIds.size} voice{selectedVoiceIds.size > 1 ? 's' : ''}
+                </span>
+                <span className={user?.credits < (selectedVoiceIds.size * 5) ? "text-destructive font-bold" : "text-primary font-bold"}>
+                    Total Cost: {selectedVoiceIds.size * 5} Credits
+                </span>
+             </div>
+          )}
+
           {/* Generate Button */}
           <Button
             size="lg"
-            variant="gradient"
-            onClick={handleGenerate}
-            disabled={loading || translating}
+            variant={user?.credits < (selectedVoiceIds.size * 5) ? "destructive" : "gradient"}
+            onClick={() => {
+                if (user?.credits < (selectedVoiceIds.size * 5)) {
+                    navigate('/pricing');
+                } else {
+                    handleGenerate();
+                }
+            }}
+            disabled={loading || translating || selectedVoiceIds.size === 0}
             className="w-full h-14 text-lg"
           >
             {translating ? (
@@ -514,8 +556,17 @@ export function VoiceGenerate() {
               </>
             ) : (
               <>
-                {enableTranslation ? <Languages className="mr-2 h-5 w-5" /> : <Volume2 className="mr-2 h-5 w-5" />}
-                {enableTranslation ? 'Translate & Generate Speech' : 'Generate Speech'}
+                {user?.credits < (selectedVoiceIds.size * 5) ? (
+                    <>
+                        <span className="mr-2">Insufficient Credits (Need {selectedVoiceIds.size * 5})</span>
+                        <span className="underline">Recharge Now</span>
+                    </>
+                ) : (
+                    <>
+                        {language !== 'all' ? <Languages className="mr-2 h-5 w-5" /> : <Volume2 className="mr-2 h-5 w-5" />}
+                        {language !== 'all' ? 'Translate & Generate Speech' : 'Generate Speech'}
+                    </>
+                )}
               </>
             )}
           </Button>

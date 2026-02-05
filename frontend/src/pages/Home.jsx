@@ -77,16 +77,16 @@ export function Home() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in">
               <Link to="/register">
                 <Button size="lg" variant="gradient" className="text-lg px-8 h-12">
-                  Start Free Trial
+                  Get Started
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
-              <Link to="/demo">
+              {/* <Link to="/demo">
                 <Button size="lg" variant="outline" className="text-lg px-8 h-12">
                   <Play className="mr-2 w-5 h-5" />
                   Watch Demo
                 </Button>
-              </Link>
+              </Link> */}
             </div>
             
             {/* Voice Styles Preview */}
@@ -158,22 +158,7 @@ export function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 border-t border-border">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                <Mic className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-bold">VoiceAI</span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              © 2024 VoiceAI. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+     
     </div>
   );
 }

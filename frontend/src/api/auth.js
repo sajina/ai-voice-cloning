@@ -28,7 +28,7 @@ export const authApi = {
   },
 
   updateProfile: async (data) => {
-    const response = await api.put('/api/auth/profile/', data);
+    const response = await api.patch('/api/auth/profile/', data);
     return response.data;
   },
 
@@ -37,6 +37,16 @@ export const authApi = {
       old_password: oldPassword,
       new_password: newPassword,
     });
+    return response.data;
+  },
+
+  sendOTP: async (data) => {
+    const response = await api.post('/api/auth/send-otp/', data);
+    return response.data;
+  },
+
+  verifyOTP: async (email, otp) => {
+    const response = await api.post('/api/auth/verify-otp/', { email, otp });
     return response.data;
   },
 

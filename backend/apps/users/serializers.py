@@ -11,8 +11,8 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['id', 'email', 'name', 'avatar', 'is_admin', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        fields = ['id', 'email', 'name', 'avatar', 'is_admin', 'created_at', 'credits']
+        read_only_fields = ['id', 'email', 'is_admin', 'created_at', 'credits']
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -92,3 +92,29 @@ class AdminUserSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
+
+
+class SendOTPSerializer(serializers.Serializer):
+    """Serializer for sending OTP."""
+    
+    email = serializers.EmailField()
+    name = serializers.CharField(max_length=255)
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+    password_confirm = serializers.CharField(write_only=True)
+    
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError('Email already registered')
+        return value
+    
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError({'password_confirm': 'Passwords do not match'})
+        return attrs
+
+
+class VerifyOTPSerializer(serializers.Serializer):
+    """Serializer for verifying OTP."""
+    
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6, min_length=6)

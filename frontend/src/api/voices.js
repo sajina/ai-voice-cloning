@@ -27,11 +27,10 @@ export const voicesApi = {
     const formData = new FormData();
     formData.append('name', data.name);
     formData.append('description', data.description || '');
+    formData.append('language', data.language || 'en');
     formData.append('audio_sample', data.audioSample);
 
-    const response = await api.post('/api/voices/clones/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await api.post('/api/voices/clones/', formData);
     return response.data;
   },
 

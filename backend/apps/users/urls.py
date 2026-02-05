@@ -8,6 +8,8 @@ from .views import (
     ProfileView,
     ChangePasswordView,
     AdminUserViewSet,
+    SendOTPView,
+    VerifyOTPView,
 )
 
 router = DefaultRouter()
@@ -19,5 +21,7 @@ urlpatterns = [
     path('refresh/', TokenRefreshView.as_view(), name='token-refresh'),
     path('profile/', ProfileView.as_view(), name='profile'),
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('send-otp/', SendOTPView.as_view(), name='send-otp'),
+    path('verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),
     path('', include(router.urls)),
 ]
