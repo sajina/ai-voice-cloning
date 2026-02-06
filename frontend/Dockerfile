@@ -1,4 +1,6 @@
-# Build Stage
+# =========================
+# Build stage
+# =========================
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -9,23 +11,30 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
-# Copy source code
+# Copy source
 COPY . .
 
-# Build for production
+# Build Vite app
 RUN npm run build
 
-# Production Stage
+
+# =========================
+# Production stage
+# =========================
 FROM nginx:alpine
 
-# Copy built assets from builder stage
+# Remove default nginx config
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copy build output
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx config template
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
-# Expose port 80
-EXPOSE 80
+# Railway provides PORT automatically
+ENV PORT=8080
 
-# Start Nginx
+EXPOSE 8080
+
 CMD ["nginx", "-g", "daemon off;"]
