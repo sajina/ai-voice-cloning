@@ -30,4 +30,4 @@ COPY . /app/
 EXPOSE 8000
 
 # Command to run the application (Procfile usage is preferred on Railway, but this is a fallback)
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
