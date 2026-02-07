@@ -50,7 +50,7 @@ if ENVIRONMENT == 'development':
     ALLOWED_HOSTS = ['*']
 else:
     DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
-    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.railway.app,aivoiceadmin.up.railway.app').split(',')
+    ALLOWED_HOSTS = ['*']
     
     # Production Security Settings
     SECURE_SSL_REDIRECT = True
@@ -62,9 +62,12 @@ else:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-CSRF_TRUSTED_ORIGINS = os.getenv(
-    "CSRF_TRUSTED_ORIGINS", ""
-).split(",")
+    CSRF_COOKIE_SAMESITE = "None"
+    SESSION_COOKIE_SAMESITE = "None"
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://aivoice.up.railway.app",
+]
 
 # Application definition
 INSTALLED_APPS = [
@@ -222,9 +225,11 @@ SIMPLE_JWT = {
 }
 
 # CORS Settings
-CORS_ALLOWED_ORIGINS = os.getenv(
-    "CORS_ALLOWED_ORIGINS", ""
-).split(",")
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://aivoice.up.railway.app",
+]
 CORS_ALLOW_CREDENTIALS = True
 
 # Email Configuration
