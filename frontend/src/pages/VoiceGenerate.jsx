@@ -271,7 +271,7 @@ export function VoiceGenerate() {
         const result = await voicesApi.generateSpeech({
           text: sampleText,
           voice_profile_id: profile.id
-        });
+        }, true);
         audioUrl = result.audio_file;
       }
 

@@ -40,8 +40,9 @@ export const voicesApi = {
   },
 
   // Speech Generation
-  generateSpeech: async (data) => {
-    const response = await api.post('/api/voices/generate/', data);
+  generateSpeech: async (data, isPreview = false) => {
+    const payload = { ...data, is_preview: isPreview };
+    const response = await api.post('/api/voices/generate/', payload);
     return response.data;
   },
 

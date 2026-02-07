@@ -123,6 +123,9 @@ if MYSQL_LOCALLY:
             'PASSWORD': os.getenv('MYSQL_ROOT_PASSWORD', ''),
             'HOST': os.getenv('MYSQLHOST', 'localhost'),
             'PORT': os.getenv('MYSQLPORT', '3306'),
+            'OPTIONS': {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
         }
     }
 elif DATABASE_URL:

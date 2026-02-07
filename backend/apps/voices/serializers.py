@@ -60,6 +60,7 @@ class GenerateSpeechSerializer(serializers.Serializer):
     text = serializers.CharField(max_length=5000)
     voice_profile_id = serializers.IntegerField(required=False, allow_null=True)
     voice_clone_id = serializers.IntegerField(required=False, allow_null=True)
+    is_preview = serializers.BooleanField(required=False, default=False)
     
     def validate(self, attrs):
         if not attrs.get('voice_profile_id') and not attrs.get('voice_clone_id'):

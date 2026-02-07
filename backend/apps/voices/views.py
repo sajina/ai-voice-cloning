@@ -73,22 +73,34 @@ class GenerateSpeechView(generics.CreateAPIView):
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
 
-            CREDIT_COST = 5
+            is_preview = serializer.validated_data.get('is_preview', False)
             
-            print("DEBUG: Attempting to deduct credits...")
-            updated = User.objects.filter(
-                id=request.user.id, 
-                credits__gte=CREDIT_COST
-            ).update(credits=F('credits') - CREDIT_COST)
+            if is_preview:
+                if len(serializer.validated_data['text']) > 200:
+                    return Response(
+                        {'error': 'Preview text must be 200 characters or less.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                CREDIT_COST = 0
+            else:
+                CREDIT_COST = 5
+            
+            print(f"DEBUG: Attempting to deduct credits (Cost: {CREDIT_COST})...")
+            
+            if CREDIT_COST > 0:
+                updated = User.objects.filter(
+                    id=request.user.id, 
+                    credits__gte=CREDIT_COST
+                ).update(credits=F('credits') - CREDIT_COST)
 
-            if updated == 0:
-                print("DEBUG: Insufficient credits")
-                return Response(
-                    {'error': 'Insufficient credits. Please recharge.'},
-                    status=status.HTTP_402_PAYMENT_REQUIRED
-                )
+                if updated == 0:
+                    print("DEBUG: Insufficient credits")
+                    return Response(
+                        {'error': 'Insufficient credits. Please recharge.'},
+                        status=status.HTTP_402_PAYMENT_REQUIRED
+                    )
+                print("DEBUG: Credits deducted.")
             
-            print("DEBUG: Credits deducted. Refreshing user...")
             request.user.refresh_from_db()
             balance_after = request.user.credits
             print(f"DEBUG: New Balance: {balance_after}")
