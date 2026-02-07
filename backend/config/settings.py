@@ -61,12 +61,14 @@ else:
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
     CSRF_COOKIE_SAMESITE = "None"
     SESSION_COOKIE_SAMESITE = "None"
 
 CSRF_TRUSTED_ORIGINS = [
     "https://aivoice.up.railway.app",
+    "https://aivoiceadmin.up.railway.app",
 ]
 
 # Application definition
