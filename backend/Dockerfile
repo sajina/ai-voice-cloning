@@ -32,6 +32,7 @@ EXPOSE 8000
 # Command to run the application (Procfile usage is preferred on Railway, but this is a fallback)
 # Copy and make start script executable
 COPY start.sh /app/
+RUN sed -i 's/\r$//' /app/start.sh
 RUN chmod +x /app/start.sh
 
 CMD ["/app/start.sh"]
