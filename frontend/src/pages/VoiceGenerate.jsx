@@ -20,7 +20,7 @@ import { Volume2, Loader2, Download, Play, Square, Sparkles, Trash2, Clock, Lang
 import toast from 'react-hot-toast';
 import { LANGUAGES, getLanguagesByRegion, SAMPLE_TEXTS } from '@/lib/languages';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { API_BASE_URL } from '@/api/axios';
 
 export function VoiceGenerate() {
   const { user, checkAuth } = useAuth();
