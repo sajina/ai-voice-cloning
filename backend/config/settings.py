@@ -11,7 +11,30 @@ import dj_database_url
 # Use PyMySQL as MySQL driver (for Windows compatibility)
 try:
     import pymysql
+    pymysql.version_info = (2, 2, 1, "final", 0)  # Fake mysqlclient version
     pymysql.install_as_MySQLdb()
+except ImportError:
+    pass
+
+# Patch to allow older MariaDB versions (e.g. 10.4) on local env
+# Django 5 requires MariaDB 10.6+, but we want to support local 10.4
+try:
+    from django.db.backends.mysql import base as mysql_base
+    original_check = mysql_base.DatabaseWrapper.check_database_version_supported
+
+    def patched_check_version(self):
+        try:
+            original_check(self)
+        except Exception:
+            # Bypass version check for local development
+            pass
+            
+    mysql_base.DatabaseWrapper.check_database_version_supported = patched_check_version
+    
+    # Patch feature flag to disable RETURNING clause (not supported in MariaDB < 10.5)
+    # Django 5 enables this by default for MariaDB, causing 1064 syntax errors on 10.4
+    from django.db.backends.mysql.features import DatabaseFeatures
+    DatabaseFeatures.can_return_columns_from_insert = False
 except ImportError:
     pass
 
@@ -20,11 +43,14 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production')
-DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'production')
 
-# Railway provides a random subdomain, so we allow all hosts in production
-# In production, set ALLOWED_HOSTS explicitly for security
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.railway.app').split(',')
+if ENVIRONMENT == 'development':
+    DEBUG = True
+    ALLOWED_HOSTS = ['*']
+else:
+    DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.railway.app').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -79,9 +105,23 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database configuration
 # Railway provides DATABASE_URL automatically when you add a database service
-DATABASE_URL = os.getenv('DATABASE_URL')
+# We map MYSQL_URL to DATABASE_URL if present, or use default DATABASE_URL
+DATABASE_URL = os.getenv('MYSQL_URL', os.getenv('DATABASE_URL'))
+MYSQL_LOCALLY = os.getenv('MYSQL_LOCALLY', 'False').lower() == 'true'
 
-if DATABASE_URL:
+if MYSQL_LOCALLY:
+    # Local MySQL configuration
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.getenv('MYSQL_DATABASE', 'ai_voice_db'),
+            'USER': os.getenv('MYSQLUSER', 'root'),
+            'PASSWORD': os.getenv('MYSQL_ROOT_PASSWORD', ''),
+            'HOST': os.getenv('MYSQLHOST', 'localhost'),
+            'PORT': os.getenv('MYSQLPORT', '3306'),
+        }
+    }
+elif DATABASE_URL:
     # Railway/Production: Use DATABASE_URL
     DATABASES = {
         'default': dj_database_url.config(
@@ -91,7 +131,7 @@ if DATABASE_URL:
         )
     }
 else:
-    # Local development: Use SQLite (simpler, no driver issues)
+    # Local development fallback: Use SQLite (simpler, no driver issues)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

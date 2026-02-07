@@ -13,11 +13,16 @@ from deep_translator.exceptions import (
 
 # Try to import aksharamukha for transliteration
 try:
+    # Python 3.14 compatibility: ast.Str removed
+    import ast
+    if not hasattr(ast, 'Str'):
+        ast.Str = ast.Constant
+        
     from aksharamukha import transliterate as akshara_transliterate
     AKSHARAMUKHA_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     AKSHARAMUKHA_AVAILABLE = False
-    print("Aksharamukha not available, transliteration will use fallback")
+    print(f"Aksharamukha not available, transliteration will use fallback. Error: {e}")
 
 # Language code mapping for Google Translate
 LANGUAGE_CODE_MAP = {
