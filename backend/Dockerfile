@@ -30,4 +30,8 @@ COPY . /app/
 EXPOSE 8000
 
 # Command to run the application (Procfile usage is preferred on Railway, but this is a fallback)
-CMD python manage.py migrate && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+# Copy and make start script executable
+COPY start.sh /app/
+RUN chmod +x /app/start.sh
+
+CMD ["/app/start.sh"]
