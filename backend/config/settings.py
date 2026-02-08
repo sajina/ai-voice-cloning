@@ -49,7 +49,7 @@ DEBUG = ENVIRONMENT == 'development'
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
-    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,voicegenadmin.up.railway.app').split(',')
+    ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', 'localhost,voicegenadmin.up.railway.app').split(',') if h.strip()]
     
     # Production Security Settings
     SECURE_SSL_REDIRECT = True
