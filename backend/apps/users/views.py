@@ -107,16 +107,15 @@ class SendOTPView(generics.CreateAPIView):
             expires_at=timezone.now() + timedelta(minutes=10)
         )
         
-        # Send email (TEMPORARILY DISABLED TO PREVENT BLOCKING)
+        # Send email
         try:
-            # send_mail(
-            #     subject='VoiceAI - Email Verification OTP',
-            #     message=f'Your OTP for VoiceAI registration is: {otp}\n\nThis code expires in 10 minutes.',
-            #     from_email=settings.DEFAULT_FROM_EMAIL,
-            #     recipient_list=[email],
-            #     fail_silently=False,  # We catch exceptions below to prevent crash
-            # )
-            print(f"SIMULATED EMAIL SEND: OTP {otp} for {email}")
+            send_mail(
+                subject='VoiceAI - Email Verification OTP',
+                message=f'Your OTP for VoiceAI registration is: {otp}\n\nThis code expires in 10 minutes.',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,  # We catch exceptions below to prevent crash
+            )
         except Exception as e:
             print("EMAIL ERROR:", e)
             # We do NOT raise here to avoid 500 error on client side if email fails
@@ -126,6 +125,36 @@ class SendOTPView(generics.CreateAPIView):
             return Response({'error': 'Failed to send email. Check logs.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response({'message': 'OTP sent to your email'}, status=status.HTTP_200_OK)
+
+
+class TextMailView(generics.CreateAPIView):
+    """Send text email via API."""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def create(self, request, *args, **kwargs):
+        from django.core.mail import send_mail
+        from django.conf import settings
+
+        email = request.data.get('email')
+        message = request.data.get('message')
+
+        if not email or not message:
+            return Response({'error': 'Email and message are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            send_mail(
+                subject='VoiceAI - Text Mail Message',
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            print("TEXTMAIL ERROR:", e)
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({'message': 'Mail sent successfully'}, status=status.HTTP_200_OK)
 
 
 class VerifyOTPView(generics.CreateAPIView):

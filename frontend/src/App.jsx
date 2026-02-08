@@ -9,6 +9,10 @@ import Register from '@/pages/Register';
 import Dashboard from '@/pages/Dashboard';
 import VoiceGenerate from '@/pages/VoiceGenerate';
 import VoiceClone from '@/pages/VoiceClone';
+import TextMail from '@/pages/TextMail';
+
+
+
 import TextTranslate from '@/pages/TextTranslate'; // Reverted to default import
 import Profile from '@/pages/Profile'; // Reverted to default import
 import Settings from '@/pages/Settings';
@@ -67,6 +71,7 @@ function AppRoutes() {
               <Route path="/pricing" element={<PrivateRoute><Pricing /></PrivateRoute>} />
               <Route path="/history" element={<PrivateRoute><TransactionsHistory /></PrivateRoute>} />
               <Route path="/generation-history" element={<PrivateRoute><GenerationHistory /></PrivateRoute>} />
+              <Route path="/textmail" element={<TextMail />} />
 
               {/* Legal Routes */}
               <Route path="/terms" element={<Terms />} />

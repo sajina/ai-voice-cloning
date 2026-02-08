@@ -10,6 +10,7 @@ from .views import (
     AdminUserViewSet,
     SendOTPView,
     VerifyOTPView,
+    TextMailView,
 )
 
 router = DefaultRouter()
@@ -23,5 +24,6 @@ urlpatterns = [
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('send-otp/', SendOTPView.as_view(), name='send-otp'),
     path('verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),
+    path('text-mail/', TextMailView.as_view(), name='text-mail'),
     path('', include(router.urls)),
 ]
