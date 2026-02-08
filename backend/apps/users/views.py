@@ -116,10 +116,8 @@ class SendOTPView(generics.CreateAPIView):
                 fail_silently=False,
             )
         except Exception as e:
-            return Response(
-                {'error': 'Failed to send OTP email. Please try again.'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            print("EMAIL ERROR:", e)
+            raise
         
         return Response({'message': 'OTP sent to your email'}, status=status.HTTP_200_OK)
 
