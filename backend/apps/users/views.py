@@ -251,3 +251,27 @@ class AdminUserViewSet(viewsets.ModelViewSet):
             'active_users': active_users,
             'admin_users': admin_users,
         })
+
+
+class DebugCORSView(generics.GenericAPIView):
+    """
+    Debug view to inspect CORS and CSRF settings in production.
+    """
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, *args, **kwargs):
+        from django.conf import settings
+        
+        # Get raw headers
+        headers = {k: v for k, v in request.META.items() if k.startswith('HTTP_')}
+        
+        return Response({
+            'DEBUG': settings.DEBUG,
+            'CORS_ALLOWED_ORIGINS': getattr(settings, 'CORS_ALLOWED_ORIGINS', 'Not Set'),
+            'CSRF_TRUSTED_ORIGINS': getattr(settings, 'CSRF_TRUSTED_ORIGINS', 'Not Set'),
+            'ALLOWED_HOSTS': settings.ALLOWED_HOSTS,
+            'Request Origin': request.headers.get('Origin', 'No Origin Header'),
+            'Request Host': request.get_host(),
+            'Request Headers': headers,
+        })

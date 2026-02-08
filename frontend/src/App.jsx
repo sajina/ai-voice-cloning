@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import CorsTest from './CorsTest';
 import { Toaster } from 'react-hot-toast';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -56,6 +57,7 @@ function AppRoutes() {
       <Navbar />
       <div className="flex flex-col min-h-screen">
           <main className="flex-grow">
+            <CorsTest />
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
