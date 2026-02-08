@@ -142,13 +142,18 @@ if MYSQL_LOCALLY:
     }
 elif DATABASE_URL:
     # Railway/Production: Use DATABASE_URL
-    DATABASES = {
-        'default': dj_database_url.config(
+    try:
+        db_config = dj_database_url.config(
             default=DATABASE_URL,
             conn_max_age=600,
             conn_health_checks=True,
         )
-    }
+        DATABASES = {'default': db_config}
+    except Exception as e:
+        print(f"ERROR: Invalid DATABASE_URL: {DATABASE_URL}. Error: {e}")
+        # Fallback to SQLite to allow app to start (at least to show logs) or raise cleaner error
+        # For production, we probably still want to crash, but printing the error is key for logs.
+        raise ValueError(f"Invalid DATABASE_URL in environment settings: {e}")
 else:
     # Local development fallback: Use SQLite (simpler, no driver issues)
     DATABASES = {
