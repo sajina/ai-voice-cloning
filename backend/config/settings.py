@@ -238,12 +238,12 @@ def parse_cors_origins(env_key, default=''):
 
 # CORS Allowed Origins
 # Defaults include localhost for development
-default_cors = 'http://localhost:5173,http://localhost:3000,https://aivoice.up.railway.app'
+default_cors = 'http://localhost:5173,http://localhost:3000,https://voicegen.up.railway.app'
 CORS_ALLOWED_ORIGINS = parse_cors_origins('CORS_ALLOWED_ORIGINS', default_cors)
 
 # CSRF Trusted Origins
 # Defaults include localhost and railway domains
-default_csrf = 'http://localhost:5173,https://aivoice.up.railway.app,https://voicegenadmin.up.railway.app'
+default_csrf = 'http://localhost:5173,https://voicegen.up.railway.app,https://voicegenadmin.up.railway.app'
 CSRF_TRUSTED_ORIGINS = parse_cors_origins('CSRF_TRUSTED_ORIGINS', default_csrf)
 
 # Production Security
@@ -251,10 +251,10 @@ if not DEBUG:
     # In production, trust the environment variables explicitly
     # But ensure we have at least the railway app
     if not CORS_ALLOWED_ORIGINS:
-         CORS_ALLOWED_ORIGINS = ["https://aivoice.up.railway.app"]
+         CORS_ALLOWED_ORIGINS = ["https://voicegen.up.railway.app"]
     
     if not CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS = ["https://aivoice.up.railway.app", "https://voicegenadmin.up.railway.app"]
+        CSRF_TRUSTED_ORIGINS = ["https://voicegen.up.railway.app", "https://voicegenadmin.up.railway.app"]
 
 CORS_ALLOW_CREDENTIALS = True
 
