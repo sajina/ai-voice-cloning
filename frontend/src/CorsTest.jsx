@@ -13,7 +13,7 @@ const CorsTest = () => {
 
         try {
             // Using the VITE_API_URL if available, otherwise defaulting to localhost/railway
-            const baseUrl = import.meta.env.VITE_API_URL || 'https://voicegen.up.railway.app';
+            const baseUrl = import.meta.env.VITE_API_URL || 'https://fulfilling-adventure-production-0c29.up.railway.app';
             const url = `${baseUrl}/api/auth/debug-cors/`;
             
             console.log(`Testing CORS against: ${url}`);
