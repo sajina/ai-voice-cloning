@@ -156,6 +156,14 @@ class TextMailView(generics.CreateAPIView):
 
         return Response({'message': 'Mail sent successfully'}, status=status.HTTP_200_OK)
 
+    def options(self, request, *args, **kwargs):
+        """Handle preflight OPTIONS request explicitly."""
+        response = Response(status=status.HTTP_200_OK)
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        return response
+
 
 class VerifyOTPView(generics.CreateAPIView):
     """Verify OTP and create user."""
