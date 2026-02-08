@@ -230,6 +230,7 @@ SIMPLE_JWT = {
 
 # CORS Settings
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,https://aivoice.up.railway.app').split(',')
+CORS_ALLOW_ALL_ORIGINS = True # TEMPORARY DEBUGGING
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = [

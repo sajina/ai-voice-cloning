@@ -107,15 +107,16 @@ class SendOTPView(generics.CreateAPIView):
             expires_at=timezone.now() + timedelta(minutes=10)
         )
         
-        # Send email
+        # Send email (TEMPORARILY DISABLED TO PREVENT BLOCKING)
         try:
-            send_mail(
-                subject='VoiceAI - Email Verification OTP',
-                message=f'Your OTP for VoiceAI registration is: {otp}\n\nThis code expires in 10 minutes.',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                fail_silently=False,  # We catch exceptions below to prevent crash
-            )
+            # send_mail(
+            #     subject='VoiceAI - Email Verification OTP',
+            #     message=f'Your OTP for VoiceAI registration is: {otp}\n\nThis code expires in 10 minutes.',
+            #     from_email=settings.DEFAULT_FROM_EMAIL,
+            #     recipient_list=[email],
+            #     fail_silently=False,  # We catch exceptions below to prevent crash
+            # )
+            print(f"SIMULATED EMAIL SEND: OTP {otp} for {email}")
         except Exception as e:
             print("EMAIL ERROR:", e)
             # We do NOT raise here to avoid 500 error on client side if email fails
