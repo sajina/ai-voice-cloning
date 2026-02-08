@@ -114,11 +114,15 @@ class SendOTPView(generics.CreateAPIView):
                 message=f'Your OTP for VoiceAI registration is: {otp}\n\nThis code expires in 10 minutes.',
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],
-                fail_silently=False,
+                fail_silently=False,  # We catch exceptions below to prevent crash
             )
         except Exception as e:
             print("EMAIL ERROR:", e)
-            raise
+            # We do NOT raise here to avoid 500 error on client side if email fails
+            # This mimics fail_silently=True but with logging
+            # return Response({'error': 'Email failed'}, status=500) # Optional: return error
+            # For now, we proceed as if sent, or strict:
+            return Response({'error': 'Failed to send email. Check logs.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response({'message': 'OTP sent to your email'}, status=status.HTTP_200_OK)
 
