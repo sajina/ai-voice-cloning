@@ -29,8 +29,9 @@ COPY . /app/
 # Expose port (Railway will override this but good for documentation)
 EXPOSE 8000
 
-# Command to run the application (Procfile usage is preferred on Railway, but this is a fallback)
+# Command to run the application
 # Copy startup script
-COPY start.py /app/
+COPY entrypoint.sh /app/
+RUN chmod +x /app/entrypoint.sh
 
-CMD ["python", "/app/start.py"]
+CMD ["/app/entrypoint.sh"]
