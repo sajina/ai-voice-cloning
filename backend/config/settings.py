@@ -49,7 +49,7 @@ DEBUG = ENVIRONMENT == 'development'
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
-    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
+    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,voicegenadmin.up.railway.app').split(',')
     
     # Production Security Settings
     SECURE_SSL_REDIRECT = True
@@ -142,8 +142,10 @@ if MYSQL_LOCALLY:
 elif DATABASE_URL:
     # Railway/Production: Use DATABASE_URL
     try:
-        db_config = dj_database_url.config(
-            default=DATABASE_URL,
+        # Use parse() explicitly to avoid dj_database_url reading a potentially 
+        # empty or invalid 'DATABASE_URL' environment variable.
+        db_config = dj_database_url.parse(
+            DATABASE_URL,
             conn_max_age=600,
             conn_health_checks=True,
         )
@@ -241,7 +243,7 @@ CORS_ALLOWED_ORIGINS = parse_cors_origins('CORS_ALLOWED_ORIGINS', default_cors)
 
 # CSRF Trusted Origins
 # Defaults include localhost and railway domains
-default_csrf = 'http://localhost:5173,https://aivoice.up.railway.app,https://aivoiceadmin.up.railway.app'
+default_csrf = 'http://localhost:5173,https://aivoice.up.railway.app,https://voicegenadmin.up.railway.app'
 CSRF_TRUSTED_ORIGINS = parse_cors_origins('CSRF_TRUSTED_ORIGINS', default_csrf)
 
 # Production Security
@@ -252,7 +254,7 @@ if not DEBUG:
          CORS_ALLOWED_ORIGINS = ["https://aivoice.up.railway.app"]
     
     if not CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS = ["https://aivoice.up.railway.app", "https://aivoiceadmin.up.railway.app"]
+        CSRF_TRUSTED_ORIGINS = ["https://aivoice.up.railway.app", "https://voicegenadmin.up.railway.app"]
 
 CORS_ALLOW_CREDENTIALS = True
 
