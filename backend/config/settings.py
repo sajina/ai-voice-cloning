@@ -66,7 +66,7 @@ else:
     CSRF_COOKIE_SAMESITE = "None"
     SESSION_COOKIE_SAMESITE = "None"
 
-CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://aivoice.up.railway.app,https://aivoiceadmin.up.railway.app').split(',')
+# CSRF_TRUSTED_ORIGINS moved to CORS section for consolidation
 
 # Application definition
 INSTALLED_APPS = [
@@ -228,34 +228,32 @@ SIMPLE_JWT = {
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
 
-# CORS Settings
 # CORS & CSRF Configuration
 # ------------------------------------------------------------------------------
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
-BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8000')
+# Robust Environment Variable Parsing
+def parse_cors_origins(env_key, default=''):
+    origins = os.getenv(env_key, default)
+    return [o.strip() for o in origins.split(',') if o.strip()]
 
-CORS_ALLOWED_ORIGINS = [
-    FRONTEND_URL,
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "https://aivoice.up.railway.app",
-]
-
-# If we are in production, we can be more strict if needed,
-# but usually allowing the specific FRONTEND_URL is sufficient.
-if not DEBUG:
-    CORS_ALLOWED_ORIGINS = [
-        FRONTEND_URL, 
-        "https://aivoice.up.railway.app"
-    ]
+# CORS Allowed Origins
+# Defaults include localhost for development
+default_cors = 'http://localhost:5173,http://localhost:3000,https://aivoice.up.railway.app'
+CORS_ALLOWED_ORIGINS = parse_cors_origins('CORS_ALLOWED_ORIGINS', default_cors)
 
 # CSRF Trusted Origins
-CSRF_TRUSTED_ORIGINS = [
-    FRONTEND_URL,
-    BACKEND_URL,
-    "https://aivoice.up.railway.app",
-    "https://aivoiceadmin.up.railway.app",
-]
+# Defaults include localhost and railway domains
+default_csrf = 'http://localhost:5173,https://aivoice.up.railway.app,https://aivoiceadmin.up.railway.app'
+CSRF_TRUSTED_ORIGINS = parse_cors_origins('CSRF_TRUSTED_ORIGINS', default_csrf)
+
+# Production Security
+if not DEBUG:
+    # In production, trust the environment variables explicitly
+    # But ensure we have at least the railway app
+    if not CORS_ALLOWED_ORIGINS:
+         CORS_ALLOWED_ORIGINS = ["https://aivoice.up.railway.app"]
+    
+    if not CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS = ["https://aivoice.up.railway.app", "https://aivoiceadmin.up.railway.app"]
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -279,6 +277,18 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
+
+# Debug Logging for CORS/CSRF (Helper to verify config on startup)
+print("=" * 50)
+print("CORS/CSRF Configuration Debug:")
+print(f"  DEBUG: {DEBUG}")
+print(f"  CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
+print(f"  CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
+try:
+    print(f"  ALLOWED_HOSTS: {ALLOWED_HOSTS}")
+except NameError:
+    print("  ALLOWED_HOSTS: Not defined yet")
+print("=" * 50)
 
 # Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
