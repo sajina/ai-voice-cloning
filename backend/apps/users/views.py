@@ -75,6 +75,7 @@ class SendOTPView(generics.CreateAPIView):
     
     serializer_class = SendOTPSerializer
     permission_classes = [AllowAny]
+    authentication_classes = []  # Bypass default auth (and thus CSRF if SessionAuth is default)
     
     def create(self, request, *args, **kwargs):
         import random
@@ -127,6 +128,7 @@ class VerifyOTPView(generics.CreateAPIView):
     
     serializer_class = VerifyOTPSerializer
     permission_classes = [AllowAny]
+    authentication_classes = []  # Bypass default auth
     
     def create(self, request, *args, **kwargs):
         from django.contrib.auth.hashers import check_password
